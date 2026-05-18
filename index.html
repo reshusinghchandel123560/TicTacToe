@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic-Tac-Toe</title>
+
+  <!-- Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS (Browser Version) -->
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Framer Motion -->
+  <script src="https://unpkg.com/framer-motion@11/dist/framer-motion.js"></script>
+
+  <!-- Babel for parsing JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme inline {
+      --color-background: hsl(var(--background));
+      --color-foreground: hsl(var(--foreground));
+      --color-border: hsl(var(--border));
+      --color-input: hsl(var(--input));
+      --color-ring: hsl(var(--ring));
+      --color-card: hsl(var(--card));
+      --color-card-foreground: hsl(var(--card-foreground));
+      --color-card-border: hsl(var(--card-border));
+      --color-popover: hsl(var(--popover));
+      --color-popover-foreground: hsl(var(--popover-foreground));
+      --color-popover-border: hsl(var(--popover-border));
+      --color-primary: hsl(var(--primary));
+      --color-primary-foreground: hsl(var(--primary-foreground));
+      --color-primary-border: var(--primary-border);
+      --color-secondary: hsl(var(--secondary));
+      --color-secondary-foreground: hsl(var(--secondary-foreground));
+      --color-secondary-border: var(--secondary-border);
+      --color-muted: hsl(var(--muted));
+      --color-muted-foreground: hsl(var(--muted-foreground));
+      --color-muted-border: var(--muted-border);
+      --color-accent: hsl(var(--accent));
+      --color-accent-foreground: hsl(var(--accent-foreground));
+      --color-accent-border: var(--accent-border);
+      --color-destructive: hsl(var(--destructive));
+      --color-destructive-foreground: hsl(var(--destructive-foreground));
+      --color-destructive-border: var(--destructive-border);
+      
+      --font-sans: var(--app-font-sans);
+      --font-serif: var(--app-font-serif);
+      --font-mono: var(--app-font-mono);
+      --radius-sm: calc(var(--radius) - 4px);
+      --radius-md: calc(var(--radius) - 2px);
+      --radius-lg: var(--radius);
+      --radius-xl: calc(var(--radius) + 4px);
+    }
+
+    :root {
+      --button-outline: rgba(255,255,255, .10);
+      --badge-outline: rgba(255,255,255, .05);
+      --opaque-button-border-intensity: 9;
+      --elevate-1: rgba(255,255,255, .04);
+      --elevate-2: rgba(255,255,255, .09);
+
+      /* Deep arcade dark theme */
+      --background: 240 10% 4%;
+      --foreground: 210 40% 98%;
+      --border: 240 10% 15%;
+      --card: 240 10% 6%;
+      --card-foreground: 210 40% 98%;
+      --card-border: 240 10% 15%;
+      --popover: 240 10% 6%;
+      --popover-foreground: 210 40% 98%;
+      --popover-border: 240 10% 15%;
+      --primary: 330 100% 65%;       /* Pink/Magenta — Player X */
+      --primary-foreground: 0 0% 100%;
+      --secondary: 180 100% 45%;     /* Cyan — Player O */
+      --secondary-foreground: 0 0% 0%;
+      --muted: 240 10% 15%;
+      --muted-foreground: 210 20% 60%;
+      --accent: 240 10% 15%;
+      --accent-foreground: 210 40% 98%;
+      --destructive: 0 84% 60%;
+      --destructive-foreground: 210 40% 98%;
+      --input: 240 10% 15%;
+      --ring: 330 100% 65%;
+
+      --app-font-sans: 'Outfit', sans-serif;
+      --app-font-serif: Georgia, serif;
+      --app-font-mono: 'Space Mono', monospace;
+      --radius: 0.75rem;
+
+      --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+      --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+      --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+      --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+      --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+    }
+
+    @layer base {
+      * { border-color: var(--color-border); }
+      body { 
+        font-family: var(--app-font-sans); 
+        -webkit-font-smoothing: antialiased; 
+        background-color: var(--color-background); 
+        color: var(--color-foreground); 
+      }
+    }
+  </style>
+</head>
+
+<body class="dark">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+    const { motion, AnimatePresence } = window.Motion;
+
+    // --- UI Components ---
+    const Button = ({ children, onClick, className = "", variant = "default", disabled, 'data-testid': testId }) => {
+      const baseClass = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2";
+      const variantClass = variant === 'outline'
+        ? "border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground"
+        : "bg-primary text-primary-foreground shadow hover:bg-primary/90";
+
+      return (
+        <button
+          onClick={onClick}
+          disabled={disabled}
+          data-testid={testId}
+          className={`${baseClass} ${variantClass} ${className}`}
+        >
+          {children}
+        </button>
+      );
+    };
+
+    const Card = ({ children, className = "" }) => (
+      <div className={`rounded-xl border bg-card text-card-foreground shadow ${className}`}>
+        {children}
+      </div>
+    );
+
+
+    // --- Game Logic ---
+    const WINNING_LINES = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+      [0, 3, 6], [1, 4, 7], [2, 5, 8], // cols
+      [0, 4, 8], [2, 4, 6]             // diagonals
+    ];
+
+    function Game() {
+      const [board, setBoard] = useState(Array(9).fill(null));
+      const [turn, setTurn] = useState('X');
+      const [mode, setMode] = useState('PvC');
+      const [scores, setScores] = useState({ X: 0, O: 0, Draws: 0 });
+      const [winner, setWinner] = useState(null);
+      const [winningLine, setWinningLine] = useState(null);
+
+      const checkWinner = (b) => {
+        for (const line of WINNING_LINES) {
+          const [a, c, d] = line;
+          if (b[a] && b[a] === b[c] && b[a] === b[d]) return { winner: b[a], line };
+        }
+        if (!b.includes(null)) return { winner: 'Draw', line: null };
+        return null;
+      };
+
+      const handleWin = useCallback((result) => {
+        setWinner(result.winner);
+        setWinningLine(result.line);
+        setScores(s => ({
+          ...s,
+          [result.winner === 'Draw' ? 'Draws' : result.winner]:
+            s[result.winner === 'Draw' ? 'Draws' : result.winner] + 1
+        }));
+      }, []);
+
+      const getAIMove = (b) => {
+        // 1. Win
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            const t = [...b]; t[i] = 'O';
+            if (checkWinner(t)?.winner === 'O') return i;
+          }
+        }
+        // 2. Block
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            const t = [...b]; t[i] = 'X';
+            if (checkWinner(t)?.winner === 'X') return i;
+          }
+        }
+        // 3. Center
+        if (!b[4]) return 4;
+        // 4. Corner
+        const corners = [0, 2, 6, 8].filter(i => !b[i]);
+        if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
+        // 5. Any open
+        const open = b.map((c, i) => c === null ? i : null).filter(i => i !== null);
+        return open[Math.floor(Math.random() * open.length)];
+      };
+
+      const makeMove = (index) => {
+        if (board[index] || winner) return;
+        const newBoard = [...board];
+        newBoard[index] = turn;
+        setBoard(newBoard);
+        const result = checkWinner(newBoard);
+        if (result) { handleWin({ winner: result.winner, line: result.line }); return; }
+        setTurn(turn === 'X' ? 'O' : 'X');
+      };
+
+      // AI move trigger
+      useEffect(() => {
+        if (mode === 'PvC' && turn === 'O' && !winner) {
+          const timer = setTimeout(() => makeMove(getAIMove(board)), 400);
+          return () => clearTimeout(timer);
+        }
+      }, [turn, mode, winner, board]);
+
+      const resetGame = () => {
+        setBoard(Array(9).fill(null));
+        setTurn('X');
+        setWinner(null);
+        setWinningLine(null);
+      };
+
+      const resetScores = () => { setScores({ X: 0, O: 0, Draws: 0 }); resetGame(); };
+
+      return (
+        <div className="min-h-screen w-full flex flex-col items-center justify-center p-4">
+          <div className="max-w-md w-full flex flex-col items-center space-y-8">
+
+            {/* Header + mode toggle */}
+            <div className="w-full flex justify-between items-center px-2">
+              <h1 className="text-3xl font-black tracking-tight text-white uppercase">
+                TIC<span className="text-primary">TAC</span>TOE
+              </h1>
+              <div className="flex gap-1 p-1 bg-black/40 border border-white/10 rounded-lg">
+                {['PvP', 'PvC'].map(m => (
+                  <button
+                    key={m}
+                    data-testid={`mode-${m}`}
+                    onClick={() => { setMode(m); resetGame(); }}
+                    className={`px-3 py-1 text-xs font-bold font-mono rounded-md transition-all ${mode === m
+                        ? 'bg-white text-black shadow-[0_0_10px_rgba(255,255,255,0.5)]'
+                        : 'text-white/50 hover:text-white/80'
+                      }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Scoreboard */}
+            <Card className="w-full grid grid-cols-3 bg-black/40 border-white/10 p-4 gap-4 backdrop-blur-sm">
+              <div className="flex flex-col items-center space-y-1">
+                <span className="text-xs font-mono text-primary font-bold tracking-wider">PLAYER X</span>
+                <span className="text-2xl font-black font-mono text-white" data-testid="score-x">{scores.X}</span>
+              </div>
+              <div className="flex flex-col items-center space-y-1">
+                <span className="text-xs font-mono text-white/50 font-bold tracking-wider">DRAWS</span>
+                <span className="text-2xl font-black font-mono text-white/80" data-testid="score-draws">{scores.Draws}</span>
+              </div>
+              <div className="flex flex-col items-center space-y-1">
+                <span className="text-xs font-mono text-secondary font-bold tracking-wider">PLAYER O</span>
+                <span className="text-2xl font-black font-mono text-white" data-testid="score-o">{scores.O}</span>
+              </div>
+            </Card>
+
+            {/* Status */}
+            <div className="h-8 flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                {!winner ? (
+                  <motion.div
+                    key={turn}
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                    className="font-mono text-sm font-bold uppercase tracking-widest flex items-center gap-2"
+                  >
+                    <span className={turn === 'X' ? 'text-primary' : 'text-secondary'}>PLAYER {turn}</span>
+                    <span className="text-white/50">TURN</span>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="winner"
+                    initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                    className="font-mono text-lg font-black uppercase tracking-widest text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
+                    data-testid="status-result"
+                  >
+                    {winner === 'Draw' ? "IT'S A DRAW" : `PLAYER ${winner} WINS!`}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Board */}
+            <div className="relative w-full aspect-square max-w-[350px]">
+              <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-3 p-3 bg-white/5 rounded-2xl border border-white/10 shadow-2xl">
+                {board.map((cell, i) => {
+                  const isWinning = winningLine?.includes(i);
+                  return (
+                    <button
+                      key={i}
+                      data-testid={`cell-${i}`}
+                      onClick={() => makeMove(i)}
+                      disabled={cell !== null || winner !== null || (mode === 'PvC' && turn === 'O')}
+                      className={`
+                        relative flex items-center justify-center rounded-xl bg-black/60 border-2 transition-all duration-200
+                        ${!cell && !winner ? 'hover:bg-white/5 hover:border-white/20 active:scale-95 cursor-pointer' : 'cursor-default'}
+                        ${cell ? 'border-white/10' : 'border-transparent'}
+                        ${isWinning ? 'bg-white/10 border-white/40 shadow-[0_0_20px_rgba(255,255,255,0.2)]' : ''}
+                      `}
+                    >
+                      <AnimatePresence>
+                        {cell === 'X' && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
+                            className={`absolute inset-4 ${isWinning ? 'drop-shadow-[0_0_12px_rgba(255,100,200,0.8)]' : ''}`}
+                          >
+                            <svg viewBox="0 0 100 100" className="w-full h-full stroke-primary" strokeWidth="12" strokeLinecap="round" fill="none">
+                              <motion.path
+                                d="M 20 20 L 80 80 M 80 20 L 20 80"
+                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
+                              />
+                            </svg>
+                          </motion.div>
+                        )}
+                        {cell === 'O' && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
+                            className={`absolute inset-4 ${isWinning ? 'drop-shadow-[0_0_12px_rgba(100,200,255,0.8)]' : ''}`}
+                          >
+                            <svg viewBox="0 0 100 100" className="w-full h-full stroke-secondary" strokeWidth="12" strokeLinecap="round" fill="none">
+                              <motion.circle
+                                cx="50" cy="50" r="34"
+                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
+                              />
+                            </svg>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="w-full flex gap-4 pt-4">
+              <Button
+                variant="outline"
+                onClick={resetScores}
+                data-testid="button-reset-score"
+                className="flex-1 font-mono uppercase tracking-wider border-white/20 hover:bg-white/10 hover:text-white"
+              >
+                Reset Score
+              </Button>
+              <Button
+                onClick={resetGame}
+                data-testid="button-restart"
+                className="flex-1 font-mono uppercase tracking-wider bg-white text-black hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+              >
+                {winner ? 'Play Again' : 'Restart'}
+              </Button>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<Game />);
+  </script>
+</body>
+
+</html>
